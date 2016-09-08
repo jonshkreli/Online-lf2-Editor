@@ -1,0 +1,191 @@
+<html>
+<head>
+    <title>LF edior</title>
+</head>
+<style type="text/css">
+    #big-sprite{
+        height: auto;
+        width: auto;
+    }
+    .pic{width: 79px; height: 79px;}
+    .frame{width: 90%; margin: 10px auto; padding: 5px;}
+    .frame:nth-child(even){background: #cac7c8;}
+    .frame p, .frame .pic{
+        display: inline-block;
+    }
+
+</style>
+<script type="text/javascript">
+    var file;
+    var text = "";
+    var frames;
+    function fileSupport() {// Check for the various File API support.
+        if (window.File && window.FileReader && window.FileList && window.Blob) {
+            // Great success! All the File APIs are supported.
+            console.log('sucess')
+        } else {
+            alert('The File APIs are not fully supported in this browser.');
+            console.log('The File APIs are not fully supported in this browser')
+        }
+    }
+
+    function openFile() {
+        file = document.getElementById("fileInput").files[0];
+        var fileName = escape(file.name);
+        var fileType = (file.type ? file.type : 'n/a');
+        var fileSize = file.size;
+        var lastModified = file.lastModifiedDate ? file.lastModifiedDate.toLocaleDateString() : 'n/a';
+
+        if(file.name.substring(file.name.lastIndexOf(".")) != ".dat" ) {
+            alert('LF2 data file only.');
+            return false;
+        }
+        else {
+            fileType = "LF2/data";
+        }
+        document.getElementById('details').innerHTML =
+                '<strong>' + fileName + '</strong> (' + fileType + ') - ' +
+                fileSize + ' bytes, last modified: ' + lastModified;
+        return true;
+    }
+
+    function decrypt() {
+        var key = "odBearBecauseHeIsVeryGoodSiuHungIsAGo";
+        var reader = new FileReader();
+
+        reader.onload = function(){
+            var data = reader.result;
+
+
+            for (var i = 123, j = 0; i < data.length; i++, j++)
+                text += String.fromCharCode(data.charCodeAt(i) - key.charCodeAt(j%key.length));
+
+            document.getElementById('DCode').innerHTML = text;
+
+            frames.txt = text.split('<frame>'); /*Get text from each frame*/
+            for(i=1;i<frames.txt.length;i++){ /*i=0 is bmp part*/
+                /*create elements for frame div for pic and p for text*/
+                var frame = document.createElement("DIV");
+                var para = document.createElement("P");
+                frame.className = 'frame';
+                para.contentEditable = 'true';
+
+
+                var t = document.createTextNode(frames.txt[i]); //text to be in div
+                var picNum="";
+                picNum = frames.txt[i].match(/pic:\s*\d+/);
+            if(picNum==null) {console.log('bosh');}
+                else{
+                picNum=picNum[0].match(/\d+/);
+                if(picNum==null){
+                    console.log('bosh nr');
+                }
+                else {
+                    picNum=picNum[0];
+                    //console.log(picNum);
+
+                }
+            }
+                var JumpFrames="";
+                var patternJump = /(next:\s*\d+)|(hit_Fa:\s*\d+)|(hit_Da:\s*\d+)|(hit_Ua:\s*\d+)|(hit_Fj:\s*\d+)|(hit_Dj:\s*\d+)|(hit_Uj:\s*\d+)|(hit_ja:\s*\d+)/;
+                JumpFrames = frames.txt[i].match(patternJump);
+                /*if there are jump frames add divs with them*/
+               console.log(JumpFrames);
+                if(JumpFrames){
+                    for(k=0;k< JumpFrames.length;k++){
+                        console.log(JumpFrames[k]);
+                        var JumpBut = document.createElement("DIV");
+                        JumpBut.className = 'JumpBut';
+                        if(JumpFrames[k].match('next:'))
+                            JumpBut.className+=' '+JumpFrames[k].match('next:')[0];
+                        JumpBut.innerText = JumpFrames[k];
+                        frame.appendChild(JumpBut);
+                    }
+
+                }
+
+                var shownpic = document.getElementById('frozen_0-'+picNum);
+
+                if(shownpic) frame.appendChild(shownpic); /*append image in frame*/
+                para.innerText =frames.txt[i];/*append text in paragraph*/
+                frame.appendChild(para); /*appen paragraph in frame*/
+                document.getElementById('main').appendChild(frame);
+            }
+
+        };
+
+        reader.readAsBinaryString(file);
+    }
+
+
+
+    var bigsp;
+    var spSize = [-79,-79];
+    var size = [10,8];
+    window.onload=function () {
+
+        var poz = [0,0];
+        var pics = new Array(size[0]);
+        for ( i = 0; i < size[0]; i++) {
+            pics[i] = new Array(size[1]);
+        }
+        bigsp=document.getElementById("picTemplate");
+/*The first is exec size[0] which is 10*/
+        for ( i = 0; i < size[1]; i++) {
+            for ( j = 0; j < size[0]; j++){
+                var pic = document.createElement("DIV");
+                pic.className = 'pic';
+                pic.id = 'frozen_0'+'-'+(i*10+j);
+                pic.style.background = 'url("frozen_0.bmp") '+spSize[0]*i+'px '+spSize[1]*j+'px';
+                pic.draggable = true;
+                bigsp.appendChild(pic);
+
+            }
+        }
+
+
+    }
+</script>
+<body onload="fileSupport();">
+
+<div id="main" >
+    <label for="fileInput">Open .dat file:</label>
+    <br>
+    <input id="fileInput" type="file" onchange="if(openFile()) decrypt();">
+    <br>
+    <output id="details"></output>
+    <br>
+    <textarea id="DCode" wrap='off'></textarea>
+</div>
+
+<div id="picTemplate" class="pic">
+
+</div>
+<frame> 2 standing
+pic: 25 state: 0  wait: 3  next: 3  dvx: 0  dvy: 0  dvz: 0  centerx: 38  centery: 79  hit_a: 0  hit_d: 0  hit_j: 0 hit_Fa: 235 hit_Ua: 247 hit_Da: 254 hit_Fj: 0 hit_Uj: 0
+bpoint:
+x: 39  y: 34
+bpoint_end:
+wpoint:
+kind: 1  x: 19  y: 55  weaponact: 23  attacking: 0  cover: 0  dvx: 0  dvy: 0  dvz: 0
+wpoint_end:
+bdy:
+kind: 0  x: 18  y: 18  w: 40  h: 60
+bdy_end:
+<frame_end>
+
+    <frame> 3 standing
+    pic:   3  state: 0  wait: 10  next: 4  dvx: 0  dvy: 0  dvz: 0  centerx: 38  centery: 79  hit_a: 0  hit_d: 0  hit_j: 0 hit_Fa: 235  hit_Ua: 247 hit_Da: 254 hit_Fj: 0 hit_Uj: 0
+    bpoint:
+    x: 39  y: 34
+    bpoint_end:
+    wpoint:
+    kind: 1 x: 18  y: 55  weaponact: 23  attacking: 0  cover: 0  dvx: 0  dvy: 0  dvz: 0
+    wpoint_end:
+    bdy:
+    kind: 0  x: 18  y: 18  w: 40  h: 60
+    bdy_end:
+    <frame_end>
+
+</body>
+</html>
