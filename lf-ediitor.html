@@ -8,17 +8,32 @@
         width: auto;
     }
     .pic{width: 79px; height: 79px;}
-    .frame{width: 90%; margin: 10px auto; padding: 5px;}
-    .frame:nth-child(even){background: #cac7c8;}
-    .frame p, .frame .pic{
+    lfframe{width: 90%; margin: 10px auto; padding: 5px; display: block;}
+    lfframe:nth-child(even){background: #cac7c8;}
+    lfframe:nth-child(odd){background: #e6e6e6;}
+    lfframe p, .frame .pic{
         display: inline-block;
     }
+    jumpbut {
+        display: inline-block;
+        margin: 1px;
+        padding: 2px;
+        background: #3939d2;
+        color: white;
+        border-radius: 2px;
+    }
+.next{ color: lavender;}
 
 </style>
 <script type="text/javascript">
     var file;
+
     var text = "";
+
     var frames;
+    var files;
+    var charName="";
+
     function fileSupport() {// Check for the various File API support.
         if (window.File && window.FileReader && window.FileList && window.Blob) {
             // Great success! All the File APIs are supported.
@@ -49,6 +64,17 @@
         return true;
     }
 
+    /*function to grab value in bmp part*/
+    function grabValue(catchThis,InHere) {
+        InHere = new String();
+        var regex = new RegExp("\\s+"+catchThis+"\\s*:\\s*\\d+");
+        var storePlace= InHere.match(regex);
+        if(storePlace){ storePlace = storePlace[0].match(/\d+/);
+            if(storePlace){ storePlace = storePlace[0]; }
+        }
+        return storePlace;
+    }
+
     function decrypt() {
         var key = "odBearBecauseHeIsVeryGoodSiuHungIsAGo";
         var reader = new FileReader();
@@ -63,9 +89,43 @@
             document.getElementById('DCode').innerHTML = text;
 
             frames.txt = text.split('<frame>'); /*Get text from each frame*/
+
+            /*chack if bmp part is ok*/
+            if(frames.txt[0].search(/<\s*bmp_begin\s*>/)!=-1 && frames.txt[0].search(/<\s*bmp_end\s*>/)!=-1){
+                console.log('OK');
+            } else {console.log('There is something wrong with "<bmp_begin>"or "<bmp_end>"')}
+            /*continue anyway*/
+            var filesString = frames.txt[0].match(/file(\(.*\))*:\s*.+/g);
+            if(filesString){
+                charName = grabValue('name',filesString);
+
+                 files = new Array(filesString.length);
+
+                /*grab path and w,h,row,col*/
+                for(f=0;f<filesString.length;f++){
+                    files[f] = {};
+                    if(filesString[f].match(/(\S)+\.(bmp|\.png)/)) {
+                        files[f].path =  filesString[f].match(/(\S)+\.(bmp|\.png)/)[0];
+                    }
+                    files[f].w = grabValue('w',filesString[f]);
+                    files[f].h = grabValue('h',filesString[f]);
+                    files[f].row = grabValue('row',filesString[f]);
+                    files[f].col = grabValue('col',filesString[f]);
+
+
+                    var res=ShowSprites(files[f].path);
+                    console.log(res);
+                }
+
+
+
+            }
+
+
+
             for(i=1;i<frames.txt.length;i++){ /*i=0 is bmp part*/
                 /*create elements for frame div for pic and p for text*/
-                var frame = document.createElement("DIV");
+                var frame = document.createElement("lfframe");
                 var para = document.createElement("P");
                 frame.className = 'frame';
                 para.contentEditable = 'true';
@@ -78,7 +138,7 @@
                 else{
                 picNum=picNum[0].match(/\d+/);
                 if(picNum==null){
-                    console.log('bosh nr');
+                    //console.log('bosh nr');
                 }
                 else {
                     picNum=picNum[0];
@@ -86,27 +146,28 @@
 
                 }
             }
-                var JumpFrames="";
-                var patternJump = /(next:\s*\d+)|(hit_Fa:\s*\d+)|(hit_Da:\s*\d+)|(hit_Ua:\s*\d+)|(hit_Fj:\s*\d+)|(hit_Dj:\s*\d+)|(hit_Uj:\s*\d+)|(hit_ja:\s*\d+)/;
-                JumpFrames = frames.txt[i].match(patternJump);
+                var patternJump = /(next:\s*\d+)|(hit_Fa:\s*\d+)|(hit_Da:\s*\d+)|(hit_Ua:\s*\d+)|(hit_Fj:\s*\d+)|(hit_Dj:\s*\d+)|(hit_Uj:\s*\d+)|(hit_ja:\s*\d+)/g;
+                var JumpFrames = frames.txt[i].match(patternJump);
                 /*if there are jump frames add divs with them*/
-               console.log(JumpFrames);
                 if(JumpFrames){
                     for(k=0;k< JumpFrames.length;k++){
-                        console.log(JumpFrames[k]);
-                        var JumpBut = document.createElement("DIV");
-                        JumpBut.className = 'JumpBut';
+                        //console.log(JumpFrames[k]);
+                        var JumpBut = document.createElement("JumpBut");
                         if(JumpFrames[k].match('next:'))
-                            JumpBut.className+=' '+JumpFrames[k].match('next:')[0];
+                        JumpBut.className=JumpFrames[k].match('next:')[0];
                         JumpBut.innerText = JumpFrames[k];
+                        JumpBut.contentEditable = 'true';
                         frame.appendChild(JumpBut);
                     }
 
                 }
 
-                var shownpic = document.getElementById('frozen_0-'+picNum);
+                    var shownpic = document.getElementById(charName+'-'+picNum);
+                    console.log(shownpic);
+                    if(shownpic) frame.appendChild(shownpic); /*append image in frame*/
 
-                if(shownpic) frame.appendChild(shownpic); /*append image in frame*/
+
+
                 para.innerText =frames.txt[i];/*append text in paragraph*/
                 frame.appendChild(para); /*appen paragraph in frame*/
                 document.getElementById('main').appendChild(frame);
@@ -122,28 +183,38 @@
     var bigsp;
     var spSize = [-79,-79];
     var size = [10,8];
-    window.onload=function () {
-
+    function ShowSprites(path,w,h,row,col) {
         var poz = [0,0];
-        var pics = new Array(size[0]);
-        for ( i = 0; i < size[0]; i++) {
-            pics[i] = new Array(size[1]);
+        var errors = [];
+        if(path===undefined){console.log("Path is not defined"); errors.push( 'Path is not defined');}
+        else {
+            if (w === undefined) w = spSize[0];
+            if (h === undefined) h = spSize[1];
+            if (row === undefined) row = size[1];
+            if (col === undefined) col = size[0];
+
+
+
+            var spriteName = path.match(/[^\\]+\.(bmp|png)/);
+            if (spriteName) {spriteName = spriteName[0];}
+            else {errors.push('Sprite not given properly (Maybe sprite name length is 0)');}
+
+            bigsp = document.getElementById("picTemplate");
+            /*The first is exec size[0] which is 10*/
+                if(errors.length==0)
+                for (i = 0; i < row; i++) {
+                    for (j = 0; j < col; j++) {
+                        var pic = document.createElement("DIV");
+                        pic.className = 'pic';
+                        pic.id = charName + '-' + (i * 10 + j);
+                        pic.style.background = 'url("'+path+'") ' + w * j + 'px ' + h * i + 'px';
+                        pic.draggable = true;
+                        bigsp.appendChild(pic);
+
+                    }
+                }
         }
-        bigsp=document.getElementById("picTemplate");
-/*The first is exec size[0] which is 10*/
-        for ( i = 0; i < size[1]; i++) {
-            for ( j = 0; j < size[0]; j++){
-                var pic = document.createElement("DIV");
-                pic.className = 'pic';
-                pic.id = 'frozen_0'+'-'+(i*10+j);
-                pic.style.background = 'url("frozen_0.bmp") '+spSize[0]*i+'px '+spSize[1]*j+'px';
-                pic.draggable = true;
-                bigsp.appendChild(pic);
-
-            }
-        }
-
-
+        return errors;
     }
 </script>
 <body onload="fileSupport();">
