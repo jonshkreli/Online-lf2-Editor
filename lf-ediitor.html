@@ -1,3 +1,4 @@
+<!--suppress JSDuplicatedDeclaration -->
 <html>
 <head>
     <title>LF edior</title>
@@ -27,12 +28,10 @@
 </style>
 <script type="text/javascript">
     var file;
-
     var text = "";
 
-    var frames;
-    var files;
-    var charName="";
+    var characters=[];
+
 
     function fileSupport() {// Check for the various File API support.
         if (window.File && window.FileReader && window.FileList && window.Blob) {
@@ -64,16 +63,10 @@
         return true;
     }
 
-    /*function to grab value in bmp part*/
-    function grabValue(catchThis,InHere) {
-        InHere = new String();
-        var regex = new RegExp("\\s+"+catchThis+"\\s*:\\s*\\d+");
-        var storePlace= InHere.match(regex);
-        if(storePlace){ storePlace = storePlace[0].match(/\d+/);
-            if(storePlace){ storePlace = storePlace[0]; }
-        }
-        return storePlace;
-    }
+
+
+
+
 
     function decrypt() {
         var key = "odBearBecauseHeIsVeryGoodSiuHungIsAGo";
@@ -81,26 +74,120 @@
 
         reader.onload = function(){
             var data = reader.result;
-
-
+            
             for (var i = 123, j = 0; i < data.length; i++, j++)
                 text += String.fromCharCode(data.charCodeAt(i) - key.charCodeAt(j%key.length));
 
+            /*Plain text code in a textarea*/
             document.getElementById('DCode').innerHTML = text;
 
-            frames.txt = text.split('<frame>'); /*Get text from each frame*/
+            /*Variables to be fetched from character*/
+            var frames=[];
+            var files;
+            var character ={};
+            var bmpKeys = ['name','head','small'];
+            var frameHeaderKeys=['pic','state','dvx','dvy','centerx','centery'];
 
+            var ExtractedText="";
+            /*function to grab value in bmp part
+            * Parameters What to grab(string),Where (string) [Datatype 'number'(default)|'string'|'twonumbers',
+            * colon boolean (is : or not, default true)]*/
+            function grabValue(catchThis,InHere,DataType,colon) {
+               // console.log('3param =>')
+               // console.log(catchThis+InHere+DataType);
+               // console.log('}}}}}}}}')
+                if(DataType===undefined) { DataType='number';}
+                else { console.log('def '+DataType); }
+                if(colon===undefined) { colon = true;}
+                if(colon){
+                var regex = new RegExp("\\s+"+catchThis+"\\s*:\\s*\\w*\\.?\\w+",'gm');}
+                /*This create a regex such as ' row: 14fr43r0' or '      row: 1.500000'*/
+                //console.log(regex);
+                //console.log(InHere);
+                var storePlace= InHere.toString().match(regex);
+                //console.log(storePlace)
+                if(storePlace){
+                    console.log('sp0' +storePlace+ '/sp0');
+                    if(DataType=='number'){
+                        storePlace = storePlace[0].match(/\d+/);
+                        /*This grab number such as ' 34 ' or ' -45.34565 '*/
+
+                        if(storePlace){ storePlace =  storePlace[0].trim(); }
+                        else console.log("There is no value for "+catchThis+" as a number");
+                    }
+
+                    else if(DataType=='string') {
+                        console.log(DataType);
+                        storePlace = storePlace[0].match(/(\w+)(\.?)(\w*)/g);
+                        console.log('sp1' +storePlace+ '/sp1');
+                        /*grab the second word ex: name: mycharacter*/
+                        if(storePlace){ storePlace = storePlace[1]; console.log('sp2' +storePlace+ '/sp2');}
+                        else console.log("There is no value for "+catchThis);
+
+                    }
+
+
+                }
+                return storePlace;
+            }
+
+            /*Function to fetch sprites*/
+            var bigsp;
+            var spSize = [-79,-79];
+            var size = [10,8];
+            function ShowSprites(path,PrevPics,row,col,w,h) {
+                var poz = [0,0];
+                var errors = [];
+                if(path===undefined){console.log("Path is not defined"); errors.push( 'Path is not defined');}
+                else {
+                    if (PrevPics === undefined) PrevPics=0;
+                    if (w === undefined) w = spSize[0];
+                    if (h === undefined) h = spSize[1];
+                    if (row === undefined) row = size[1];
+                    if (col === undefined) col = size[0];
+
+
+
+                    var spriteName = path.match(/[^\\]+\.(bmp|png)/);
+                    if (spriteName) {spriteName = spriteName[0];}
+                    else {errors.push('Sprite not given properly (Maybe sprite name length is 0)');}
+
+                    bigsp = document.getElementById("picTemplate");
+                    /*The first is exec size[0] which is 10*/
+                    if(errors.length==0)
+                        for (i = 0; i < row; i++) {
+                            for (j = 0; j < col; j++) {
+                                var pic = document.createElement("DIV");
+                                pic.className = 'pic';
+                                pic.id = character['name'] + '-' + (i * 10 + j + PrevPics);
+                                pic.style.background = 'url("'+path+'") ' + w * j + 'px ' + h * i + 'px';
+                                pic.draggable = true;
+                                bigsp.appendChild(pic);
+
+                            }
+                        }
+                }
+                return errors;
+            }
+
+            ExtractedText = text.split('<frame>'); /*Get text from each frame*/
             /*chack if bmp part is ok*/
-            if(frames.txt[0].search(/<\s*bmp_begin\s*>/)!=-1 && frames.txt[0].search(/<\s*bmp_end\s*>/)!=-1){
+            if(ExtractedText[0].search(/<\s*bmp_begin\s*>/)!=-1 && ExtractedText[0].search(/<\s*bmp_end\s*>/)!=-1){
                 console.log('OK');
             } else {console.log('There is something wrong with "<bmp_begin>"or "<bmp_end>"')}
+            
             /*continue anyway*/
-            var filesString = frames.txt[0].match(/file(\(.*\))*:\s*.+/g);
+            //console.log(frame.txt[0]);
+            for(key in bmpKeys) {
+                //console.log(bmpKeys[key], frames.txt[0],'string')
+                character[bmpKeys[key]] = grabValue(bmpKeys[key], ExtractedText[0],'string');
+            }
+            
+
+
+            var filesString = ExtractedText[0].match(/file(\(.*\))*:\s*.+/g);
             if(filesString){
-                charName = grabValue('name',filesString);
-
                  files = new Array(filesString.length);
-
                 /*grab path and w,h,row,col*/
                 for(f=0;f<filesString.length;f++){
                     files[f] = {};
@@ -113,109 +200,113 @@
                     files[f].col = grabValue('col',filesString[f]);
 
 
-                    var res=ShowSprites(files[f].path);
+                    var res=ShowSprites(files[f].path,(f*files[f].row*files[f].col));
+                    if(res.length>0)
                     console.log(res);
                 }
-
-
-
             }
 
+            /*create character container div*/
+            var CharContainer = document.createElement("DIV");
+            CharContainer.className = 'charContainer';
+            CharContainer.id ='cc-'+character.name;
+            document.getElementById('main').appendChild(CharContainer);
 
+            /*create elements for frame div for pic and p for text*/
+            for(i=1;i<ExtractedText.length;i++){ /*i=0 is bmp part*/
 
-            for(i=1;i<frames.txt.length;i++){ /*i=0 is bmp part*/
-                /*create elements for frame div for pic and p for text*/
-                var frame = document.createElement("lfframe");
+                var lfframeDOM = document.createElement("lfframe");
                 var para = document.createElement("P");
-                frame.className = 'frame';
+                lfframeDOM.className = 'frame';
                 para.contentEditable = 'true';
 
+                var frame={}; /*variable which will hold all frame properties*/
 
-                var t = document.createTextNode(frames.txt[i]); //text to be in div
-                var picNum="";
-                picNum = frames.txt[i].match(/pic:\s*\d+/);
-            if(picNum==null) {console.log('bosh');}
-                else{
-                picNum=picNum[0].match(/\d+/);
-                if(picNum==null){
-                    //console.log('bosh nr');
-                }
-                else {
-                    picNum=picNum[0];
-                    //console.log(picNum);
+                /*first get frame number and name*/
+                var FrameNum = ExtractedText[i].match(/\d+/);
+                if(FrameNum) frame['ID'] = FrameNum[0];
+                else {console.log("FATAL ERROR FRAME IS MISSING ID. \n Look on: "+ExtractedText[i])}
 
+                var FrameName = ExtractedText[i].match(/\S+\w/);
+                if(FrameName) frame['Name'] = FrameName[0];
+                else {console.log("FATAL ERROR FRAME IS MISSING ID. \n Look on: "+ExtractedText[i])}
+
+                /*get all elements from header*/
+                for(key in frameHeaderKeys) {
+                    //console.log(bmpKeys[key], frames.txt[0],'string')
+                    frame[frameHeaderKeys[key]] = grabValue(frameHeaderKeys[key], ExtractedText[i]);
                 }
-            }
+                console.log('['+frame['pic']+']');
+
+
                 var patternJump = /(next:\s*\d+)|(hit_Fa:\s*\d+)|(hit_Da:\s*\d+)|(hit_Ua:\s*\d+)|(hit_Fj:\s*\d+)|(hit_Dj:\s*\d+)|(hit_Uj:\s*\d+)|(hit_ja:\s*\d+)/g;
-                var JumpFrames = frames.txt[i].match(patternJump);
+                var JumpFrames = ExtractedText[i].match(patternJump);
                 /*if there are jump frames add divs with them*/
                 if(JumpFrames){
                     for(k=0;k< JumpFrames.length;k++){
                         //console.log(JumpFrames[k]);
-                        var JumpBut = document.createElement("JumpBut");
+                        var JumpBut = document.createElement("JUMPBUT");
                         if(JumpFrames[k].match('next:'))
                         JumpBut.className=JumpFrames[k].match('next:')[0];
                         JumpBut.innerText = JumpFrames[k];
                         JumpBut.contentEditable = 'true';
-                        frame.appendChild(JumpBut);
+                        lfframeDOM.appendChild(JumpBut);
                     }
 
                 }
 
-                    var shownpic = document.getElementById(charName+'-'+picNum);
-                    console.log(shownpic);
-                    if(shownpic) frame.appendChild(shownpic); /*append image in frame*/
+                    var shownpic = document.getElementById(character['name']+'-'+frame['pic']);
+                    //console.log(shownpic);
+
+                if(shownpic) {
+                    var ClonePic = document.createElement("DIV");
+                    ClonePic.style.background = shownpic.style.background;
+                    ClonePic.className = 'pic';
+                    ClonePic.id = shownpic.id+"-pic";
+                    ClonePic.draggable = shownpic.draggable;
+
+                    lfframeDOM.appendChild(ClonePic); } /*append image in frame*/
 
 
+                para.innerText =ExtractedText[i];/*append text in paragraph*/
+                lfframeDOM.appendChild(para); /*appen paragraph in frame*/
+                CharContainer.appendChild(lfframeDOM);
 
-                para.innerText =frames.txt[i];/*append text in paragraph*/
-                frame.appendChild(para); /*appen paragraph in frame*/
-                document.getElementById('main').appendChild(frame);
+                frames.push(frame);
+
             }
 
+            /*Now after clonning all pics to their postiotions delete the raw form of them*/
+            var myNode = document.getElementById("picTemplate");
+            while (myNode.firstChild) {
+                myNode.removeChild(myNode.firstChild);
+            }
+            character.files=files;
+            character.frames = frames;
+            console.log(character);
+
+            /*Now attach events to DOM elements*/
+            var jumpbuts= document.getElementsByTagName('jumpbut');
+            for(jb =0;jb< jumpbuts.length;jb++) {
+                //console.log(jumpbuts[jb])
+                jumpbuts[jb].addEventListener('mousedown', function (e) {
+                    /*On shift+click jumpt to frame number*/
+                    if(e.shiftKey){
+                        console.log('yay');
+
+                    }
+                })
+            }
+            characters.push(character)
         };
+
 
         reader.readAsBinaryString(file);
     }
 
 
 
-    var bigsp;
-    var spSize = [-79,-79];
-    var size = [10,8];
-    function ShowSprites(path,w,h,row,col) {
-        var poz = [0,0];
-        var errors = [];
-        if(path===undefined){console.log("Path is not defined"); errors.push( 'Path is not defined');}
-        else {
-            if (w === undefined) w = spSize[0];
-            if (h === undefined) h = spSize[1];
-            if (row === undefined) row = size[1];
-            if (col === undefined) col = size[0];
 
-
-
-            var spriteName = path.match(/[^\\]+\.(bmp|png)/);
-            if (spriteName) {spriteName = spriteName[0];}
-            else {errors.push('Sprite not given properly (Maybe sprite name length is 0)');}
-
-            bigsp = document.getElementById("picTemplate");
-            /*The first is exec size[0] which is 10*/
-                if(errors.length==0)
-                for (i = 0; i < row; i++) {
-                    for (j = 0; j < col; j++) {
-                        var pic = document.createElement("DIV");
-                        pic.className = 'pic';
-                        pic.id = charName + '-' + (i * 10 + j);
-                        pic.style.background = 'url("'+path+'") ' + w * j + 'px ' + h * i + 'px';
-                        pic.draggable = true;
-                        bigsp.appendChild(pic);
-
-                    }
-                }
-        }
-        return errors;
-    }
 </script>
 <body onload="fileSupport();">
 
