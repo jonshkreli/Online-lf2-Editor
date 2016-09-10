@@ -1,4 +1,4 @@
-# online-lf2-editor
+# Online lf2 editor
 
 This is a project for creating a IDE for editing lf2 game. It is written in javascript and can be executed in modern browsers. So far you can open properly only .dat files of  characters. I have included frozen character project (by Prince Freeza and YinYin it's not made by me) just for example purpose.
 
