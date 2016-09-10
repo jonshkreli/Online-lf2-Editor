@@ -8,3 +8,7 @@ Create a visual based editor, for easy navigation editing and having conceptual 
 Features so far:
 Every frame has it's own pic: show by real image. 
 Shift+click in next: , hit_Ja: etc brings you directly to that frame.
+
+
+Get started:
+Just download lf-ediitor.html, open and start uploading a character dat file.
