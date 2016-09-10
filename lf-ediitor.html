@@ -15,15 +15,23 @@
     lfframe p, .frame .pic{
         display: inline-block;
     }
+    .frameIDDiv {
+        display: inline-block;
+        background: red;
+        font-size: xx-large;
+    }
+    .frameNameDiv {
+        display: inline-block;
+    }
     jumpbut {
         display: inline-block;
-        margin: 1px;
-        padding: 2px;
         background: #3939d2;
         color: white;
         border-radius: 2px;
     }
-.next{ color: lavender;}
+    .next{ color: #000;}
+    .frameIDDiv, .frameNameDiv, jumpbut{ margin: 1px;  padding: 2px;  }
+
 
 </style>
 <script type="text/javascript">
@@ -97,7 +105,7 @@
                // console.log(catchThis+InHere+DataType);
                // console.log('}}}}}}}}')
                 if(DataType===undefined) { DataType='number';}
-                else { console.log('def '+DataType); }
+                else {/* console.log('def '+DataType);*/ }
                 if(colon===undefined) { colon = true;}
                 if(colon){
                 var regex = new RegExp("\\s+"+catchThis+"\\s*:\\s*\\w*\\.?\\w+",'gm');}
@@ -107,7 +115,7 @@
                 var storePlace= InHere.toString().match(regex);
                 //console.log(storePlace)
                 if(storePlace){
-                    console.log('sp0' +storePlace+ '/sp0');
+                    //console.log('sp0' +storePlace+ '/sp0');
                     if(DataType=='number'){
                         storePlace = storePlace[0].match(/\d+/);
                         /*This grab number such as ' 34 ' or ' -45.34565 '*/
@@ -117,11 +125,11 @@
                     }
 
                     else if(DataType=='string') {
-                        console.log(DataType);
+                       // console.log(DataType);
                         storePlace = storePlace[0].match(/(\w+)(\.?)(\w*)/g);
-                        console.log('sp1' +storePlace+ '/sp1');
+                       // console.log('sp1' +storePlace+ '/sp1');
                         /*grab the second word ex: name: mycharacter*/
-                        if(storePlace){ storePlace = storePlace[1]; console.log('sp2' +storePlace+ '/sp2');}
+                        if(storePlace){ storePlace = storePlace[1]; /*console.log('sp2' +storePlace+ '/sp2');*/}
                         else console.log("There is no value for "+catchThis);
 
                     }
@@ -236,8 +244,32 @@
                     //console.log(bmpKeys[key], frames.txt[0],'string')
                     frame[frameHeaderKeys[key]] = grabValue(frameHeaderKeys[key], ExtractedText[i]);
                 }
-                console.log('['+frame['pic']+']');
+                //console.log('['+frame['pic']+']');
 
+
+                    var shownpic = document.getElementById(character['name']+'-'+frame['pic']);
+                    //console.log(shownpic);
+                if(shownpic) {
+                    var ClonePic = document.createElement("DIV");
+                    ClonePic.style.background = shownpic.style.background;
+                    ClonePic.className = 'pic';
+                    ClonePic.id = shownpic.id+"-pic";
+                    ClonePic.draggable = shownpic.draggable;
+                    lfframeDOM.appendChild(ClonePic); } /*append image in frame*/
+
+                /*Now assign frame id and add a class for each frame name*/
+                lfframeDOM.id = character.name+'-'+frame.ID;
+                lfframeDOM.className+= ' ' + frame.Name;
+                /*Create divs for frame number and name and also all header elements*/
+                var FrameIDDiv = document.createElement('DIV');
+                FrameIDDiv.className = 'frameIDDiv';
+                FrameIDDiv.contentEditable = true;
+                FrameIDDiv.innerText = frame.ID;
+                var FrameNameDiv= document.createElement('DIV');
+                FrameNameDiv.className = 'frameNameDiv';
+                FrameNameDiv.contentEditable = true;
+                FrameNameDiv.innerText = frame.Name;
+                lfframeDOM.appendChild(FrameIDDiv);  lfframeDOM.appendChild(FrameNameDiv);
 
                 var patternJump = /(next:\s*\d+)|(hit_Fa:\s*\d+)|(hit_Da:\s*\d+)|(hit_Ua:\s*\d+)|(hit_Fj:\s*\d+)|(hit_Dj:\s*\d+)|(hit_Uj:\s*\d+)|(hit_ja:\s*\d+)/g;
                 var JumpFrames = ExtractedText[i].match(patternJump);
@@ -247,7 +279,7 @@
                         //console.log(JumpFrames[k]);
                         var JumpBut = document.createElement("JUMPBUT");
                         if(JumpFrames[k].match('next:'))
-                        JumpBut.className=JumpFrames[k].match('next:')[0];
+                            JumpBut.className=JumpFrames[k].match('next')[0];
                         JumpBut.innerText = JumpFrames[k];
                         JumpBut.contentEditable = 'true';
                         lfframeDOM.appendChild(JumpBut);
@@ -255,17 +287,7 @@
 
                 }
 
-                    var shownpic = document.getElementById(character['name']+'-'+frame['pic']);
-                    //console.log(shownpic);
 
-                if(shownpic) {
-                    var ClonePic = document.createElement("DIV");
-                    ClonePic.style.background = shownpic.style.background;
-                    ClonePic.className = 'pic';
-                    ClonePic.id = shownpic.id+"-pic";
-                    ClonePic.draggable = shownpic.draggable;
-
-                    lfframeDOM.appendChild(ClonePic); } /*append image in frame*/
 
 
                 para.innerText =ExtractedText[i];/*append text in paragraph*/
@@ -283,17 +305,23 @@
             }
             character.files=files;
             character.frames = frames;
-            console.log(character);
+           // console.log(character);
 
             /*Now attach events to DOM elements*/
             var jumpbuts= document.getElementsByTagName('jumpbut');
             for(jb =0;jb< jumpbuts.length;jb++) {
+                //console.log('jb')
                 //console.log(jumpbuts[jb])
+               // console.log(jumpbuts[jb].innerText)
+               // console.log(jumpbuts[jb].innerText.match(/\d+/))
+               // console.log(jumpbuts[jb].innerText.match(/\d+/)[0])
+                var jumpNum= jumpbuts[jb].innerText.match(/\d+/)[0];
+                console.log(jumpNum);
                 jumpbuts[jb].addEventListener('mousedown', function (e) {
                     /*On shift+click jumpt to frame number*/
                     if(e.shiftKey){
-                        console.log('yay');
-
+                        console.log(jumpNum);
+                       document.getElementById(character.name+ '-' + jumpNum).focus();
                     }
                 })
             }
