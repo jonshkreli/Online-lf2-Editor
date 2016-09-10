@@ -8,19 +8,20 @@
         height: auto;
         width: auto;
     }
-    .pic{width: 79px; height: 79px;}
+    .picImg{width: 79px; height: 79px; display: inline-block;}
     lfframe{width: 90%; margin: 10px auto; padding: 5px; display: block;}
     lfframe:nth-child(even){background: #cac7c8;}
     lfframe:nth-child(odd){background: #e6e6e6;}
-    lfframe p, .frame .pic{
+    lfframe p, .frame{
         display: inline-block;
     }
+
     .frameIDDiv {
         display: inline-block;
         background: red;
         font-size: xx-large;
     }
-    .frameNameDiv {
+    .frameNameDiv{
         display: inline-block;
     }
     jumpbut {
@@ -29,9 +30,19 @@
         color: white;
         border-radius: 2px;
     }
-    .next{ color: #000;}
-    .frameIDDiv, .frameNameDiv, jumpbut{ margin: 1px;  padding: 2px;  }
+    jumpbut a {
+        color: lightblue;
+    }
+    .next{ color: #c1c1c1;}
+    .frameIDDiv, .frameNameDiv, jumpbut, .HeadFrameTag{ margin: 1px;  padding: 2px;  }
 
+    .headerTagsContainer {
+        margin: 5px;
+    }
+    .HeadFrameTag {
+        display: inline-block;
+        background: bisque;
+    }
 
 </style>
 <script type="text/javascript">
@@ -82,7 +93,7 @@
 
         reader.onload = function(){
             var data = reader.result;
-            
+
             for (var i = 123, j = 0; i < data.length; i++, j++)
                 text += String.fromCharCode(data.charCodeAt(i) - key.charCodeAt(j%key.length));
 
@@ -94,21 +105,21 @@
             var files;
             var character ={};
             var bmpKeys = ['name','head','small'];
-            var frameHeaderKeys=['pic','state','dvx','dvy','centerx','centery'];
+            var frameHeaderKeys=['pic','wait','state','dvx','dvy','centerx','centery'];
 
             var ExtractedText="";
             /*function to grab value in bmp part
-            * Parameters What to grab(string),Where (string) [Datatype 'number'(default)|'string'|'twonumbers',
-            * colon boolean (is : or not, default true)]*/
+             * Parameters What to grab(string),Where (string) [Datatype 'number'(default)|'string'|'twonumbers',
+             * colon boolean (is : or not, default true)]*/
             function grabValue(catchThis,InHere,DataType,colon) {
-               // console.log('3param =>')
-               // console.log(catchThis+InHere+DataType);
-               // console.log('}}}}}}}}')
+                // console.log('3param =>')
+                // console.log(catchThis+InHere+DataType);
+                // console.log('}}}}}}}}')
                 if(DataType===undefined) { DataType='number';}
                 else {/* console.log('def '+DataType);*/ }
                 if(colon===undefined) { colon = true;}
                 if(colon){
-                var regex = new RegExp("\\s+"+catchThis+"\\s*:\\s*\\w*\\.?\\w+",'gm');}
+                    var regex = new RegExp("\\s+"+catchThis+"\\s*:\\s*\\w*\\.?\\w+",'gm');}
                 /*This create a regex such as ' row: 14fr43r0' or '      row: 1.500000'*/
                 //console.log(regex);
                 //console.log(InHere);
@@ -125,9 +136,9 @@
                     }
 
                     else if(DataType=='string') {
-                       // console.log(DataType);
+                        // console.log(DataType);
                         storePlace = storePlace[0].match(/(\w+)(\.?)(\w*)/g);
-                       // console.log('sp1' +storePlace+ '/sp1');
+                        // console.log('sp1' +storePlace+ '/sp1');
                         /*grab the second word ex: name: mycharacter*/
                         if(storePlace){ storePlace = storePlace[1]; /*console.log('sp2' +storePlace+ '/sp2');*/}
                         else console.log("There is no value for "+catchThis);
@@ -165,9 +176,10 @@
                     if(errors.length==0)
                         for (i = 0; i < row; i++) {
                             for (j = 0; j < col; j++) {
+                                /*create divs with bg of sprite sheets, look on id format*/
                                 var pic = document.createElement("DIV");
-                                pic.className = 'pic';
-                                pic.id = character['name'] + '-' + (i * 10 + j + PrevPics);
+                                pic.className = 'picImg';
+                                pic.id = character['name'] + '&' + (i * 10 + j + PrevPics);
                                 pic.style.background = 'url("'+path+'") ' + w * j + 'px ' + h * i + 'px';
                                 pic.draggable = true;
                                 bigsp.appendChild(pic);
@@ -183,19 +195,19 @@
             if(ExtractedText[0].search(/<\s*bmp_begin\s*>/)!=-1 && ExtractedText[0].search(/<\s*bmp_end\s*>/)!=-1){
                 console.log('OK');
             } else {console.log('There is something wrong with "<bmp_begin>"or "<bmp_end>"')}
-            
+
             /*continue anyway*/
             //console.log(frame.txt[0]);
             for(key in bmpKeys) {
                 //console.log(bmpKeys[key], frames.txt[0],'string')
                 character[bmpKeys[key]] = grabValue(bmpKeys[key], ExtractedText[0],'string');
             }
-            
+
 
 
             var filesString = ExtractedText[0].match(/file(\(.*\))*:\s*.+/g);
             if(filesString){
-                 files = new Array(filesString.length);
+                files = new Array(filesString.length);
                 /*grab path and w,h,row,col*/
                 for(f=0;f<filesString.length;f++){
                     files[f] = {};
@@ -210,7 +222,7 @@
 
                     var res=ShowSprites(files[f].path,(f*files[f].row*files[f].col));
                     if(res.length>0)
-                    console.log(res);
+                        console.log(res);
                 }
             }
 
@@ -239,21 +251,24 @@
                 if(FrameName) frame['Name'] = FrameName[0];
                 else {console.log("FATAL ERROR FRAME IS MISSING ID. \n Look on: "+ExtractedText[i])}
 
-                /*get all elements from header*/
+                //console.log('['+frame['pic']+']');
+                /*get all other ele from frame head*/
                 for(key in frameHeaderKeys) {
                     //console.log(bmpKeys[key], frames.txt[0],'string')
                     frame[frameHeaderKeys[key]] = grabValue(frameHeaderKeys[key], ExtractedText[i]);
                 }
-                //console.log('['+frame['pic']+']');
 
-
-                    var shownpic = document.getElementById(character['name']+'-'+frame['pic']);
-                    //console.log(shownpic);
+                /*Get div of pics by id, then append them into lfframes*/
+                var shownpic = document.getElementById(character['name']+'&'+frame['pic']);
+                //console.log(shownpic);
                 if(shownpic) {
                     var ClonePic = document.createElement("DIV");
                     ClonePic.style.background = shownpic.style.background;
-                    ClonePic.className = 'pic';
-                    ClonePic.id = shownpic.id+"-pic";
+                    //console.log(ClonePic.style.background)
+                    //console.log(shownpic);
+
+                    ClonePic.className = 'picImg';
+                    ClonePic.id = shownpic.id+"-picImg";
                     ClonePic.draggable = shownpic.draggable;
                     lfframeDOM.appendChild(ClonePic); } /*append image in frame*/
 
@@ -271,23 +286,54 @@
                 FrameNameDiv.innerText = frame.Name;
                 lfframeDOM.appendChild(FrameIDDiv);  lfframeDOM.appendChild(FrameNameDiv);
 
-                var patternJump = /(next:\s*\d+)|(hit_Fa:\s*\d+)|(hit_Da:\s*\d+)|(hit_Ua:\s*\d+)|(hit_Fj:\s*\d+)|(hit_Dj:\s*\d+)|(hit_Uj:\s*\d+)|(hit_ja:\s*\d+)/g;
-                var JumpFrames = ExtractedText[i].match(patternJump);
-                /*if there are jump frames add divs with them*/
-                if(JumpFrames){
-                    for(k=0;k< JumpFrames.length;k++){
-                        //console.log(JumpFrames[k]);
-                        var JumpBut = document.createElement("JUMPBUT");
-                        if(JumpFrames[k].match('next:'))
-                            JumpBut.className=JumpFrames[k].match('next')[0];
-                        JumpBut.innerText = JumpFrames[k];
-                        JumpBut.contentEditable = 'true';
-                        lfframeDOM.appendChild(JumpBut);
-                    }
+               // var patternJump = /(next:\s*\d+)|(hit_Fa:\s*\d+)|(hit_Da:\s*\d+)|(hit_Ua:\s*\d+)|(hit_Fj:\s*\d+)|(hit_Dj:\s*\d+)|(hit_Uj:\s*\d+)|(hit_ja:\s*\d+)/g;
+                //var JumpFrames = ExtractedText[i].match(patternJump);
+                var JumpFramesKeys = ['next','hit_Fa','hit_Ua','hit_Da','hit_Fj','hit_Uj','hit_Dj','hit_ja'];
+                for(key in JumpFramesKeys) {
+                    //console.log(JumpFramesKeys[key], ExtractedText[i],'string')
+                    var KeyValue = grabValue(JumpFramesKeys[key], ExtractedText[i]);
 
+                    /*Add jumpbut and keyvalue only if they exist and are not 0*/
+                    if(KeyValue && KeyValue!=0){
+
+                    frame[JumpFramesKeys[key]] = grabValue(JumpFramesKeys[key], ExtractedText[i]);
+
+                    var JumpBut = document.createElement("JUMPBUT");
+                    if(JumpFramesKeys[key]=='next') JumpBut.className=JumpFramesKeys[key];
+
+                    JumpBut.innerText = JumpFramesKeys[key]+': '+frame[JumpFramesKeys[key]];
+                    /*create a a with href to specified frame if*/
+                    var JumpLink = document.createElement("A");
+                    var jumpNum= frame[JumpFramesKeys[key]];
+
+                    JumpLink.setAttribute('href','#' + character.name+ '-' +jumpNum);
+                    JumpLink.innerText = 'GO';
+
+                    JumpBut.contentEditable = true;
+                    JumpLink.contentEditable = false;
+
+                    JumpBut.appendChild(JumpLink);
+                    lfframeDOM.appendChild(JumpBut);
+                        JumpBut.addEventListener('keydown',function (e) {
+                            e.srcElement.innerText;
+
+                            console.log(e);
+                                console.log( e.srcElement.innerText)
+                        })
+                }
                 }
 
-
+                /*show them in editable divs*/
+                var headerTagsContainer = document.createElement('DIV');
+                headerTagsContainer.className = 'headerTagsContainer';
+                lfframeDOM.appendChild(headerTagsContainer);
+                for(key in frameHeaderKeys) {
+                    var headerTagDiv = document.createElement('DIV');
+                    headerTagDiv.innerText = frameHeaderKeys[key]+': '+frame[frameHeaderKeys[key]];
+                    headerTagDiv.className = 'HeadFrameTag '+frameHeaderKeys[key];
+                    headerTagDiv.contentEditable = true;
+                    headerTagsContainer.appendChild(headerTagDiv);
+                }
 
 
                 para.innerText =ExtractedText[i];/*append text in paragraph*/
@@ -305,26 +351,9 @@
             }
             character.files=files;
             character.frames = frames;
-           // console.log(character);
+            // console.log(character);
 
-            /*Now attach events to DOM elements*/
-            var jumpbuts= document.getElementsByTagName('jumpbut');
-            for(jb =0;jb< jumpbuts.length;jb++) {
-                //console.log('jb')
-                //console.log(jumpbuts[jb])
-               // console.log(jumpbuts[jb].innerText)
-               // console.log(jumpbuts[jb].innerText.match(/\d+/))
-               // console.log(jumpbuts[jb].innerText.match(/\d+/)[0])
-                var jumpNum= jumpbuts[jb].innerText.match(/\d+/)[0];
-                console.log(jumpNum);
-                jumpbuts[jb].addEventListener('mousedown', function (e) {
-                    /*On shift+click jumpt to frame number*/
-                    if(e.shiftKey){
-                        console.log(jumpNum);
-                       document.getElementById(character.name+ '-' + jumpNum).focus();
-                    }
-                })
-            }
+            /*Add character into the list*/
             characters.push(character)
         };
 
@@ -332,9 +361,29 @@
         reader.readAsBinaryString(file);
     }
 
+    /*if we click on Jump buttons go to them*/
+    document.addEventListener('mousedown', function (e) {
+        if(e.shiftKey) {
+            console.log(e);
+            console.log(document.activeElement);
+            var parentnode = document.activeElement.parentNode;
+            if (parentnode.id.match(/\w+/)){
+                var charname = parentnode.id.match(/\w+/)[0];
 
-
-
+            var jumpNum = document.activeElement.innerText.match(/\d+/)[0];
+            var goEle = document.getElementById(charname + '-' + jumpNum);
+            console.log(goEle);
+            console.log(jumpNum);
+            if (window.location.href.match(/#.+/) != null) {
+                window.location.href = window.location.href.replace(/#.+/, '#' + charname + '-' + jumpNum);
+            }
+            else {
+                window.location.href += '#' + charname + '-' + jumpNum;
+            }
+        }
+        }
+    });
+var event;
 </script>
 <body onload="fileSupport();">
 
