@@ -2,6 +2,8 @@
 <html>
 <head>
     <title>LF edior</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/1.6.7/go-debug.js"></script>
+
 </head>
 <style type="text/css">
     #big-sprite{
@@ -44,11 +46,85 @@
         background: bisque;
     }
 
+    #diagram1{width: 300px;
+        height:200px;}
+    #palete{width: 300px;
+        height:200px;}
+    #work1{
+        width: 800px; height: 400px;
+    }
 </style>
+<script>
+
+    function FrameNameColor(FrameName) {
+        var color;
+        console.log(FrameName);
+        switch (FrameName.toString()){
+            case 'standing': color='#DDD'; break;
+            case  'walking': color='#456234'; break;
+            default: color='red';
+        }
+
+        return color;
+    }
+
+
+    var go1;
+    var  work1;
+    var frameModel;
+
+    var frameNameBinded;
+window.onload = function () {
+     go1 = go.GraphObject.make;
+      work1 = go1(go.Diagram, "work1",
+            {
+                initialContentAlignment: go.Spot.Center, // center Diagram contents
+                "undoManager.isEnabled": true // enable Ctrl-Z to undo and Ctrl-Y to redo
+            });
+
+     //frameNameBinded = new go.Binding("text", "FrameName");
+/*Function that makes a text binding TextBlockName is name to be binded,
+ label, if it require a label default true*/
+    function BindText(TextBlockName,label,color) {
+    if(color===undefined) color='white';
+       return  go1(go.TextBlock, TextBlockName+ ': ' +"value",
+               { margin: 2, stroke: color, font: "bold 12px sans-serif" },
+               new go.Binding("text", TextBlockName,function(v) { return label!=false? TextBlockName+ ': ' + v : v; }))
+    }
+
+
+    work1.nodeTemplate = go1(go.Node, "Horizontal",
+            // the entire node will have a light-blue background
+            { background: "#44CCFF", height: 200 , resizable: true},
+            go1(go.Picture,
+                    // Pictures should normally have an explicit width and height.
+                    // This picture has a red background, only visible when there is no source set
+                    // or when the image is partially transparent.
+                    { margin: 3, width: 80, height: 80, background: "red" },
+                    // Picture.source is data bound to the "source" attribute of the model data
+                    new go.Binding("ImgSource")),
+            BindText('FrameID',false),BindText('FrameName',false),BindText('next'),BindText('state'),
+            BindText('wait'),BindText('pic'),BindText('centerx'),BindText('centery'),
+            BindText('hit_Fa'),BindText('hit_Ua'),BindText('hit_Da'),BindText('hit_Fj')
+
+    );
+
+
+     frameModel = go1(go.GraphLinksModel);
+    // in the model data, each node is represented by a JavaScript object:
+    frameModel.nodeDataArray = [];
+    frameModel.linkDataArray = [];
+
+
+    work1.model = frameModel;
+    //frameModel.nodeKeyProperty = 'FrameID';
+}
+
+</script>
+
 <script type="text/javascript">
     var file;
     var text = "";
-
     var characters=[];
 
 
@@ -110,23 +186,25 @@
             var ExtractedText="";
             /*function to grab value in bmp part
              * Parameters What to grab(string),Where (string) [Datatype 'number'(default)|'string'|'twonumbers',
-             * colon boolean (is : or not, default true)]*/
-            function grabValue(catchThis,InHere,DataType,colon) {
-                // console.log('3param =>')
-                // console.log(catchThis+InHere+DataType);
-                // console.log('}}}}}}}}')
+             * colon boolean (is : or not, default true)], debug default: false (if true prints mesages in console)*/
+            function grabValue(catchThis,InHere,DataType,colon,debug) {
                 if(DataType===undefined) { DataType='number';}
-                else {/* console.log('def '+DataType);*/ }
                 if(colon===undefined) { colon = true;}
+                if(debug===undefined) debug=false;
+
+                if(debug){ console.log('3param =>');console.log(catchThis+InHere+DataType);console.log('}}');}
+
+
+
+
                 if(colon){
                     var regex = new RegExp("\\s+"+catchThis+"\\s*:\\s*\\w*\\.?\\w+",'gm');}
                 /*This create a regex such as ' row: 14fr43r0' or '      row: 1.500000'*/
-                //console.log(regex);
-                //console.log(InHere);
+                if(debug) console.log(regex);
                 var storePlace= InHere.toString().match(regex);
-                //console.log(storePlace)
+                if(debug) console.log(storePlace);
                 if(storePlace){
-                    //console.log('sp0' +storePlace+ '/sp0');
+                    if(debug)console.log('sp0' +storePlace+ '/sp0');
                     if(DataType=='number'){
                         storePlace = storePlace[0].match(/\d+/);
                         /*This grab number such as ' 34 ' or ' -45.34565 '*/
@@ -136,11 +214,12 @@
                     }
 
                     else if(DataType=='string') {
-                        // console.log(DataType);
                         storePlace = storePlace[0].match(/(\w+)(\.?)(\w*)/g);
-                        // console.log('sp1' +storePlace+ '/sp1');
+                        if(debug)console.log('sp1' +storePlace+ '/sp1');
                         /*grab the second word ex: name: mycharacter*/
-                        if(storePlace){ storePlace = storePlace[1]; /*console.log('sp2' +storePlace+ '/sp2');*/}
+                        if(storePlace){ storePlace = storePlace[1];
+                            if(debug) console.log('sp2' +storePlace+ '/sp2');
+                        }
                         else console.log("There is no value for "+catchThis);
 
                     }
@@ -247,8 +326,10 @@
                 if(FrameNum) frame['ID'] = FrameNum[0];
                 else {console.log("FATAL ERROR FRAME IS MISSING ID. \n Look on: "+ExtractedText[i])}
 
-                var FrameName = ExtractedText[i].match(/\S+\w/);
-                if(FrameName) frame['Name'] = FrameName[0];
+                var FrameName = ExtractedText[i].match(/\b\w+\b/g);
+                //console.log(ExtractedText[i])
+                //console.log(FrameName);
+                if(FrameName) frame['Name'] = FrameName[1];
                 else {console.log("FATAL ERROR FRAME IS MISSING ID. \n Look on: "+ExtractedText[i])}
 
                 //console.log('['+frame['pic']+']');
@@ -270,7 +351,9 @@
                     ClonePic.className = 'picImg';
                     ClonePic.id = shownpic.id+"-picImg";
                     ClonePic.draggable = shownpic.draggable;
-                    lfframeDOM.appendChild(ClonePic); } /*append image in frame*/
+                    lfframeDOM.appendChild(ClonePic);
+                    //makedia(ClonePic.id)
+                } /*append image in frame*/
 
                 /*Now assign frame id and add a class for each frame name*/
                 lfframeDOM.id = character.name+'-'+frame.ID;
@@ -342,6 +425,25 @@
 
                 frames.push(frame);
 
+                /*add char name to diagram*/
+                var frameGroupExist = false;
+                for(k in frameModel.nodeDataArray){
+                    if(frameModel.nodeDataArray[k].key==frame.Name){
+                        frameGroupExist=true; break;
+                    }
+                }
+                if(!frameGroupExist)
+                frameModel.addNodeData({key: frame.Name, isGroup: true})
+
+             frameModel.addNodeData({ ImgSource: ClonePic.style.backgroundImage,
+                 key: lfframeDOM.id,FrameID: lfframeDOM.id, FrameName: frame.Name, pic: frame.pic, next: frame.next,
+                 state: frame.state, wait: frame.wait, centerx: frame.centerx, centery: frame.centery,
+                 hit_Fa: frame.hit_Fa, hit_Da: frame.hit_Da, hit_Fj: frame.hit_Fj,
+             group: frame.Name
+             });
+
+
+             frameModel.addLinkData({from: lfframeDOM.id, to: character.name+'-'+frame.next})
             }
 
             /*Now after clonning all pics to their postiotions delete the raw form of them*/
@@ -355,6 +457,8 @@
 
             /*Add character into the list*/
             characters.push(character)
+
+
         };
 
 
@@ -384,8 +488,12 @@
         }
     });
 var event;
+
+
 </script>
 <body onload="fileSupport();">
+
+<div id="work1"></div>
 
 <div id="main" >
     <label for="fileInput">Open .dat file:</label>
@@ -395,36 +503,68 @@ var event;
     <output id="details"></output>
     <br>
     <textarea id="DCode" wrap='off'></textarea>
+    <div id="diagram1"></div>
+    <div id="palete"></div>
 </div>
 
 <div id="picTemplate" class="pic">
 
 </div>
-<frame> 2 standing
-pic: 25 state: 0  wait: 3  next: 3  dvx: 0  dvy: 0  dvz: 0  centerx: 38  centery: 79  hit_a: 0  hit_d: 0  hit_j: 0 hit_Fa: 235 hit_Ua: 247 hit_Da: 254 hit_Fj: 0 hit_Uj: 0
-bpoint:
-x: 39  y: 34
-bpoint_end:
-wpoint:
-kind: 1  x: 19  y: 55  weaponact: 23  attacking: 0  cover: 0  dvx: 0  dvy: 0  dvz: 0
-wpoint_end:
-bdy:
-kind: 0  x: 18  y: 18  w: 40  h: 60
-bdy_end:
-<frame_end>
-
-    <frame> 3 standing
-    pic:   3  state: 0  wait: 10  next: 4  dvx: 0  dvy: 0  dvz: 0  centerx: 38  centery: 79  hit_a: 0  hit_d: 0  hit_j: 0 hit_Fa: 235  hit_Ua: 247 hit_Da: 254 hit_Fj: 0 hit_Uj: 0
-    bpoint:
-    x: 39  y: 34
-    bpoint_end:
-    wpoint:
-    kind: 1 x: 18  y: 55  weaponact: 23  attacking: 0  cover: 0  dvx: 0  dvy: 0  dvz: 0
-    wpoint_end:
-    bdy:
-    kind: 0  x: 18  y: 18  w: 40  h: 60
-    bdy_end:
-    <frame_end>
 
 </body>
+<script>
+    function makedia(id) {
+        var  myDiagram =
+                $(go.Diagram, id);
+    }
+
+    var GO = go.GraphObject.make;  // for conciseness in defining templates
+     myDiagram = GO(go.Diagram, "diagram1",  // must name or refer to the DIV HTML element
+                    { allowDrop: true });  // must be true to accept drops from the Palette
+
+    // define several shared Brushes
+    var fill1 = "rgb(105,210,231)"
+    var brush1 = "rgb(65,180,181)";
+
+    var fill2 = "rgb(167,219,216)"
+    var brush2 = "rgb(127,179,176)";
+
+
+    myDiagram.nodeTemplateMap.add("", // default category
+            GO(go.Node, "Auto",
+                    { locationSpot: go.Spot.Center },
+                    new go.Binding("location", "loc", go.Point.parse).makeTwoWay(go.Point.stringify),
+                    GO(go.Shape, "Ellipse",
+                            { strokeWidth: 2, fill: fill1, name: "SHAPE" },
+                            new go.Binding("figure", "figure"),
+                            new go.Binding("fill", "fill"),
+                            new go.Binding("stroke", "stroke")
+                    ),
+                    GO(go.TextBlock,
+                            { margin: 5,
+                                maxSize: new go.Size(200, NaN),
+                                wrap: go.TextBlock.WrapFit,
+                                textAlign: "center",
+                                editable: true,
+                                font: "bold 9pt Helvetica, Arial, sans-serif",
+                                name: "TEXT" },
+                            new go.Binding("text", "text").makeTwoWay())));
+
+    // On selection changed, make sure infoDraggable will resize as necessary
+    myDiagram.addDiagramListener("ChangedSelection", function(diagramEvent) {
+        var idrag = document.getElementById("infoDraggable");
+        idrag.style.width = "";
+        idrag.style.height = "";
+    });
+    myPalette = new go.Palette("palete");  // must name or refer to the DIV HTML element
+    myPalette.nodeTemplateMap = myDiagram.nodeTemplateMap;
+    myPalette.model = new go.GraphLinksModel([
+        { text: "Lake", fill: fill1, stroke: brush1, figure: "Rectangle" },
+        { text: "Ocean", fill: fill2, stroke: brush2, figure: "Rectangle" },
+    ]);
+
+
+
+
+</script>
 </html>
