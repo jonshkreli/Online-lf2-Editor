@@ -1,0 +1,571 @@
+<!--suppress JSDuplicatedDeclaration -->
+<html>
+<head>
+    <title>LF edior</title>
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/1.6.7/go-debug.js"></script>-->
+    <script src="gojs-debug.js"></script>
+</head>
+<style type="text/css">
+    #big-sprite{
+        height: auto;
+        width: auto;
+    }
+    .picImg{width: 79px; height: 79px; display: inline-block;}
+    lfframe{width: 90%; margin: 10px auto; padding: 5px; display: block;}
+    lfframe:nth-child(even){background: #cac7c8;}
+    lfframe:nth-child(odd){background: #e6e6e6;}
+    lfframe p, .frame{
+        display: inline-block;
+    }
+
+    .frameIDDiv {
+        display: inline-block;
+        background: red;
+        font-size: xx-large;
+    }
+    .frameNameDiv{
+        display: inline-block;
+    }
+    jumpbut {
+        display: inline-block;
+        background: #3939d2;
+        color: white;
+        border-radius: 2px;
+    }
+    jumpbut a {
+        color: lightblue;
+    }
+    .next{ color: #c1c1c1;}
+    .frameIDDiv, .frameNameDiv, jumpbut, .HeadFrameTag{ margin: 1px;  padding: 2px;  }
+
+    .headerTagsContainer {
+        margin: 5px;
+    }
+    .HeadFrameTag {
+        display: inline-block;
+        background: bisque;
+    }
+
+    #diagram1{width: 300px;
+        height:200px;}
+    #palete{width: 300px;
+        height:200px;}
+    #work1{
+        width: 800px; height: 400px;
+    }
+</style>
+<script>
+
+
+
+    function FrameNameColor(FrameName) {
+        var color;
+        console.log(FrameName);
+        switch (FrameName.toString()){
+            case 'standing': color='#DDD'; break;
+            case  'walking': color='#456234'; break;
+            default: color='red';
+        }
+
+        return color;
+    }
+
+
+    var go1;
+    var  work1;
+    var frameModel;
+
+    var frameNameBinded;
+window.onload = function () {
+     go1 = go.GraphObject.make;
+      work1 = go1(go.Diagram, "work1",
+            {
+                initialContentAlignment: go.Spot.Center, // center Diagram contents
+                "undoManager.isEnabled": true // enable Ctrl-Z to undo and Ctrl-Y to redo
+            });
+
+     //frameNameBinded = new go.Binding("text", "FrameName");
+/*Function that makes a text binding TextBlockName is name to be binded,
+ label, if it require a label default true*/
+    function BindText(TextBlockName,label,color) {
+    if(color===undefined) color='white';
+       return  go1(go.TextBlock, TextBlockName+ ': ' +"value",
+               { margin: 2, stroke: color, font: "bold 12px sans-serif" },
+               new go.Binding("text", TextBlockName,function(v) { return label!=false? TextBlockName+ ': ' + v : v; }))
+    }
+
+
+    work1.nodeTemplate = go1(go.Node, "Horizontal",
+            // the entire node will have a light-blue background
+            { background: "#44CCFF", height: 200 , resizable: true},
+            go1(go.Picture,
+                    // Pictures should normally have an explicit width and height.
+                    // This picture has a red background, only visible when there is no source set
+                    // or when the image is partially transparent.
+                    { margin: 3, width: 80, height: 80, background: "red" },
+                    // Picture.source is data bound to the "source" attribute of the model data
+                    new go.Binding("ImgSource")),
+            BindText('FrameID',false),BindText('FrameName',false),BindText('next'),BindText('state'),
+            BindText('wait'),BindText('pic'),BindText('centerx'),BindText('centery'),
+            BindText('hit_Fa'),BindText('hit_Ua'),BindText('hit_Da'),BindText('hit_Fj')
+
+    );
+
+
+     frameModel = go1(go.GraphLinksModel);
+    // in the model data, each node is represented by a JavaScript object:
+    frameModel.nodeDataArray = [];
+    frameModel.linkDataArray = [];
+
+
+    work1.model = frameModel;
+    //frameModel.nodeKeyProperty = 'FrameID';
+}
+
+</script>
+
+<script type="text/javascript">
+    var file;
+    var text = "";
+    var characters=[];
+
+
+    function fileSupport() {// Check for the various File API support.
+        if (window.File && window.FileReader && window.FileList && window.Blob) {
+            // Great success! All the File APIs are supported.
+            console.log('sucess')
+        } else {
+            alert('The File APIs are not fully supported in this browser.');
+            console.log('The File APIs are not fully supported in this browser')
+        }
+    }
+
+    function openFile() {
+        file = document.getElementById("fileInput").files[0];
+        var fileName = escape(file.name);
+        var fileType = (file.type ? file.type : 'n/a');
+        var fileSize = file.size;
+        var lastModified = file.lastModifiedDate ? file.lastModifiedDate.toLocaleDateString() : 'n/a';
+
+        if(file.name.substring(file.name.lastIndexOf(".")) != ".dat" ) {
+            alert('LF2 data file only.');
+            return false;
+        }
+        else {
+            fileType = "LF2/data";
+        }
+        document.getElementById('details').innerHTML =
+                '<strong>' + fileName + '</strong> (' + fileType + ') - ' +
+                fileSize + ' bytes, last modified: ' + lastModified;
+        return true;
+    }
+
+
+
+
+
+
+    function decrypt() {
+        var key = "odBearBecauseHeIsVeryGoodSiuHungIsAGo";
+        var reader = new FileReader();
+
+        reader.onload = function(){
+            var data = reader.result;
+
+            for (var i = 123, j = 0; i < data.length; i++, j++)
+                text += String.fromCharCode(data.charCodeAt(i) - key.charCodeAt(j%key.length));
+
+            /*Plain text code in a textarea*/
+            document.getElementById('DCode').innerHTML = text;
+
+            /*Variables to be fetched from character*/
+            var frames=[];
+            var files;
+            var character ={};
+            var bmpKeys = ['name','head','small'];
+            var frameHeaderKeys=['pic','wait','state','dvx','dvy','centerx','centery'];
+
+            var ExtractedText="";
+            /*function to grab value in bmp part
+             * Parameters What to grab(string),Where (string) [Datatype 'number'(default)|'string'|'twonumbers',
+             * colon boolean (is : or not, default true)], debug default: false (if true prints mesages in console)*/
+            function grabValue(catchThis,InHere,DataType,colon,debug) {
+                if(DataType===undefined) { DataType='number';}
+                if(colon===undefined) { colon = true;}
+                if(debug===undefined) debug=false;
+
+                if(debug){ console.log('3param =>');console.log(catchThis+InHere+DataType);console.log('}}');}
+
+
+
+
+                if(colon){
+                    var regex = new RegExp("\\s+"+catchThis+"\\s*:\\s*\\w*\\.?\\w+",'gm');}
+                /*This create a regex such as ' row: 14fr43r0' or '      row: 1.500000'*/
+                if(debug) console.log(regex);
+                var storePlace= InHere.toString().match(regex);
+                if(debug) console.log(storePlace);
+                if(storePlace){
+                    if(debug)console.log('sp0' +storePlace+ '/sp0');
+                    if(DataType=='number'){
+                        storePlace = storePlace[0].match(/\d+/);
+                        /*This grab number such as ' 34 ' or ' -45.34565 '*/
+
+                        if(storePlace){ storePlace =  storePlace[0].trim(); }
+                        else console.log("There is no value for "+catchThis+" as a number");
+                    }
+
+                    else if(DataType=='string') {
+                        storePlace = storePlace[0].match(/(\w+)(\.?)(\w*)/g);
+                        if(debug)console.log('sp1' +storePlace+ '/sp1');
+                        /*grab the second word ex: name: mycharacter*/
+                        if(storePlace){ storePlace = storePlace[1];
+                            if(debug) console.log('sp2' +storePlace+ '/sp2');
+                        }
+                        else console.log("There is no value for "+catchThis);
+
+                    }
+
+
+                }
+                return storePlace;
+            }
+
+            /*Function to fetch sprites*/
+            var bigsp;
+            var spSize = [-79,-79];
+            var size = [10,8];
+            function ShowSprites(path,PrevPics,row,col,w,h) {
+                var poz = [0,0];
+                var errors = [];
+                if(path===undefined){console.log("Path is not defined"); errors.push( 'Path is not defined');}
+                else {
+                    if (PrevPics === undefined) PrevPics=0;
+                    if (w === undefined) w = spSize[0];
+                    if (h === undefined) h = spSize[1];
+                    if (row === undefined) row = size[1];
+                    if (col === undefined) col = size[0];
+
+
+
+                    var spriteName = path.match(/[^\\]+\.(bmp|png)/);
+                    if (spriteName) {spriteName = spriteName[0];}
+                    else {errors.push('Sprite not given properly (Maybe sprite name length is 0)');}
+
+                    bigsp = document.getElementById("picTemplate");
+                    /*The first is exec size[0] which is 10*/
+                    if(errors.length==0)
+                        for (i = 0; i < row; i++) {
+                            for (j = 0; j < col; j++) {
+                                /*create divs with bg of sprite sheets, look on id format*/
+                                var pic = document.createElement("DIV");
+                                pic.className = 'picImg';
+                                pic.id = character['name'] + '&' + (i * 10 + j + PrevPics);
+                                pic.style.background = 'url("'+path+'") ' + w * j + 'px ' + h * i + 'px';
+                                pic.draggable = true;
+                                bigsp.appendChild(pic);
+
+                            }
+                        }
+                }
+                return errors;
+            }
+
+            ExtractedText = text.split('<frame>'); /*Get text from each frame*/
+            /*chack if bmp part is ok*/
+            if(ExtractedText[0].search(/<\s*bmp_begin\s*>/)!=-1 && ExtractedText[0].search(/<\s*bmp_end\s*>/)!=-1){
+                console.log('OK');
+            } else {console.log('There is something wrong with "<bmp_begin>"or "<bmp_end>"')}
+
+            /*continue anyway*/
+            //console.log(frame.txt[0]);
+            for(key in bmpKeys) {
+                //console.log(bmpKeys[key], frames.txt[0],'string')
+                character[bmpKeys[key]] = grabValue(bmpKeys[key], ExtractedText[0],'string');
+            }
+
+
+
+            var filesString = ExtractedText[0].match(/file(\(.*\))*:\s*.+/g);
+            if(filesString){
+                files = new Array(filesString.length);
+                /*grab path and w,h,row,col*/
+                for(f=0;f<filesString.length;f++){
+                    files[f] = {};
+                    if(filesString[f].match(/(\S)+\.(bmp|\.png)/)) {
+                        files[f].path =  filesString[f].match(/(\S)+\.(bmp|\.png)/)[0];
+                    }
+                    files[f].w = grabValue('w',filesString[f]);
+                    files[f].h = grabValue('h',filesString[f]);
+                    files[f].row = grabValue('row',filesString[f]);
+                    files[f].col = grabValue('col',filesString[f]);
+
+
+                    var res=ShowSprites(files[f].path,(f*files[f].row*files[f].col));
+                    if(res.length>0)
+                        console.log(res);
+                }
+            }
+
+            /*create character container div*/
+            var CharContainer = document.createElement("DIV");
+            CharContainer.className = 'charContainer';
+            CharContainer.id ='cc-'+character.name;
+            document.getElementById('main').appendChild(CharContainer);
+
+            /*create elements for frame div for pic and p for text*/
+            for(i=1;i<ExtractedText.length;i++){ /*i=0 is bmp part*/
+
+                var lfframeDOM = document.createElement("lfframe");
+                var para = document.createElement("P");
+                lfframeDOM.className = 'frame';
+                para.contentEditable = 'true';
+
+                var frame={}; /*variable which will hold all frame properties*/
+
+                /*first get frame number and name*/
+                var FrameNum = ExtractedText[i].match(/\d+/);
+                if(FrameNum) frame['ID'] = FrameNum[0];
+                else {console.log("FATAL ERROR FRAME IS MISSING ID. \n Look on: "+ExtractedText[i])}
+
+                var FrameName = ExtractedText[i].match(/\b\w+\b/g);
+                //console.log(ExtractedText[i])
+                //console.log(FrameName);
+                if(FrameName) frame['Name'] = FrameName[1];
+                else {console.log("FATAL ERROR FRAME IS MISSING ID. \n Look on: "+ExtractedText[i])}
+
+                //console.log('['+frame['pic']+']');
+                /*get all other ele from frame head*/
+                for(key in frameHeaderKeys) {
+                    //console.log(bmpKeys[key], frames.txt[0],'string')
+                    frame[frameHeaderKeys[key]] = grabValue(frameHeaderKeys[key], ExtractedText[i]);
+                }
+
+                /*Get div of pics by id, then append them into lfframes*/
+                var shownpic = document.getElementById(character['name']+'&'+frame['pic']);
+                //console.log(shownpic);
+                if(shownpic) {
+                    var ClonePic = document.createElement("DIV");
+                    ClonePic.style.background = shownpic.style.background;
+                    //console.log(ClonePic.style.background)
+                    //console.log(shownpic);
+
+                    ClonePic.className = 'picImg';
+                    ClonePic.id = shownpic.id+"-picImg";
+                    ClonePic.draggable = shownpic.draggable;
+                    lfframeDOM.appendChild(ClonePic);
+                    //makedia(ClonePic.id)
+                } /*append image in frame*/
+
+                /*Now assign frame id and add a class for each frame name*/
+                lfframeDOM.id = character.name+'-'+frame.ID;
+                lfframeDOM.className+= ' ' + frame.Name;
+                /*Create divs for frame number and name and also all header elements*/
+                var FrameIDDiv = document.createElement('DIV');
+                FrameIDDiv.className = 'frameIDDiv';
+                FrameIDDiv.contentEditable = true;
+                FrameIDDiv.innerText = frame.ID;
+                var FrameNameDiv= document.createElement('DIV');
+                FrameNameDiv.className = 'frameNameDiv';
+                FrameNameDiv.contentEditable = true;
+                FrameNameDiv.innerText = frame.Name;
+                lfframeDOM.appendChild(FrameIDDiv);  lfframeDOM.appendChild(FrameNameDiv);
+
+               // var patternJump = /(next:\s*\d+)|(hit_Fa:\s*\d+)|(hit_Da:\s*\d+)|(hit_Ua:\s*\d+)|(hit_Fj:\s*\d+)|(hit_Dj:\s*\d+)|(hit_Uj:\s*\d+)|(hit_ja:\s*\d+)/g;
+                //var JumpFrames = ExtractedText[i].match(patternJump);
+                var JumpFramesKeys = ['next','hit_Fa','hit_Ua','hit_Da','hit_Fj','hit_Uj','hit_Dj','hit_ja'];
+                for(key in JumpFramesKeys) {
+                    //console.log(JumpFramesKeys[key], ExtractedText[i],'string')
+                    var KeyValue = grabValue(JumpFramesKeys[key], ExtractedText[i]);
+
+                    /*Add jumpbut and keyvalue only if they exist and are not 0*/
+                    if(KeyValue && KeyValue!=0){
+
+                    frame[JumpFramesKeys[key]] = grabValue(JumpFramesKeys[key], ExtractedText[i]);
+
+                    var JumpBut = document.createElement("JUMPBUT");
+                    if(JumpFramesKeys[key]=='next') JumpBut.className=JumpFramesKeys[key];
+
+                    JumpBut.innerText = JumpFramesKeys[key]+': '+frame[JumpFramesKeys[key]];
+                    /*create a a with href to specified frame if*/
+                    var JumpLink = document.createElement("A");
+                    var jumpNum= frame[JumpFramesKeys[key]];
+
+                    JumpLink.setAttribute('href','#' + character.name+ '-' +jumpNum);
+                    JumpLink.innerText = 'GO';
+
+                    JumpBut.contentEditable = true;
+                    JumpLink.contentEditable = false;
+
+                    JumpBut.appendChild(JumpLink);
+                    lfframeDOM.appendChild(JumpBut);
+                        JumpBut.addEventListener('keydown',function (e) {
+                            e.srcElement.innerText;
+
+                            console.log(e);
+                                console.log( e.srcElement.innerText)
+                        })
+                }
+                }
+
+                /*show them in editable divs*/
+                var headerTagsContainer = document.createElement('DIV');
+                headerTagsContainer.className = 'headerTagsContainer';
+                lfframeDOM.appendChild(headerTagsContainer);
+                for(key in frameHeaderKeys) {
+                    var headerTagDiv = document.createElement('DIV');
+                    headerTagDiv.innerText = frameHeaderKeys[key]+': '+frame[frameHeaderKeys[key]];
+                    headerTagDiv.className = 'HeadFrameTag '+frameHeaderKeys[key];
+                    headerTagDiv.contentEditable = true;
+                    headerTagsContainer.appendChild(headerTagDiv);
+                }
+
+
+                para.innerText =ExtractedText[i];/*append text in paragraph*/
+                lfframeDOM.appendChild(para); /*appen paragraph in frame*/
+                CharContainer.appendChild(lfframeDOM);
+
+                frames.push(frame);
+
+                /*add char name to diagram*/
+                var frameGroupExist = false;
+                for(k in frameModel.nodeDataArray){
+                    if(frameModel.nodeDataArray[k].key==frame.Name){
+                        frameGroupExist=true; break;
+                    }
+                }
+                if(!frameGroupExist)
+                frameModel.addNodeData({key: frame.Name, isGroup: true});
+
+             frameModel.addNodeData({ ImgSource: ClonePic.style.backgroundImage,
+                 key: lfframeDOM.id,FrameID: lfframeDOM.id, FrameName: frame.Name, pic: frame.pic, next: frame.next,
+                 state: frame.state, wait: frame.wait, centerx: frame.centerx, centery: frame.centery,
+                 hit_Fa: frame.hit_Fa, hit_Da: frame.hit_Da, hit_Fj: frame.hit_Fj,
+             group: frame.Name
+             });
+
+             frameModel.addLinkData({from: lfframeDOM.id, to: character.name+'-'+frame.next})
+            }
+
+            /*Now after clonning all pics to their postiotions delete the raw form of them*/
+            var myNode = document.getElementById("picTemplate");
+            while (myNode.firstChild) {
+                myNode.removeChild(myNode.firstChild);
+            }
+            character.files=files;
+            character.frames = frames;
+            // console.log(character);
+
+            /*Add character into the list*/
+            characters.push(character)
+
+
+        };
+
+
+        reader.readAsBinaryString(file);
+    }
+
+    /*if we click on Jump buttons go to them*/
+    document.addEventListener('mousedown', function (e) {
+        if(e.shiftKey) {
+            console.log(e);
+            console.log(document.activeElement);
+            var parentnode = document.activeElement.parentNode;
+            if (parentnode.id.match(/\w+/)){
+                var charname = parentnode.id.match(/\w+/)[0];
+
+            var jumpNum = document.activeElement.innerText.match(/\d+/)[0];
+            var goEle = document.getElementById(charname + '-' + jumpNum);
+            console.log(goEle);
+            console.log(jumpNum);
+            if (window.location.href.match(/#.+/) != null) {
+                window.location.href = window.location.href.replace(/#.+/, '#' + charname + '-' + jumpNum);
+            }
+            else {
+                window.location.href += '#' + charname + '-' + jumpNum;
+            }
+        }
+        }
+    });
+var event;
+
+
+</script>
+<body onload="fileSupport();">
+
+<div id="work1"></div>
+
+<div id="main" >
+    <label for="fileInput">Open .dat file:</label>
+    <br>
+    <input id="fileInput" type="file" onchange="if(openFile()) decrypt();">
+    <br>
+    <output id="details"></output>
+    <br>
+    <textarea id="DCode" wrap='off'></textarea>
+    <div id="diagram1"></div>
+    <div id="palete"></div>
+</div>
+
+<div id="picTemplate" class="pic">
+
+</div>
+
+</body>
+<script>
+    function makedia(id) {
+        var  myDiagram =
+                $(go.Diagram, id);
+    }
+
+    var GO = go.GraphObject.make;  // for conciseness in defining templates
+     myDiagram = GO(go.Diagram, "diagram1",  // must name or refer to the DIV HTML element
+                    { allowDrop: true });  // must be true to accept drops from the Palette
+
+    // define several shared Brushes
+    var fill1 = "rgb(105,210,231)"
+    var brush1 = "rgb(65,180,181)";
+
+    var fill2 = "rgb(167,219,216)"
+    var brush2 = "rgb(127,179,176)";
+
+
+    myDiagram.nodeTemplateMap.add("", // default category
+            GO(go.Node, "Auto",
+                    { locationSpot: go.Spot.Center },
+                    new go.Binding("location", "loc", go.Point.parse).makeTwoWay(go.Point.stringify),
+                    GO(go.Shape, "Ellipse",
+                            { strokeWidth: 2, fill: fill1, name: "SHAPE" },
+                            new go.Binding("figure", "figure"),
+                            new go.Binding("fill", "fill"),
+                            new go.Binding("stroke", "stroke")
+                    ),
+                    GO(go.TextBlock,
+                            { margin: 5,
+                                maxSize: new go.Size(200, NaN),
+                                wrap: go.TextBlock.WrapFit,
+                                textAlign: "center",
+                                editable: true,
+                                font: "bold 9pt Helvetica, Arial, sans-serif",
+                                name: "TEXT" },
+                            new go.Binding("text", "text").makeTwoWay())));
+
+    // On selection changed, make sure infoDraggable will resize as necessary
+    myDiagram.addDiagramListener("ChangedSelection", function(diagramEvent) {
+        var idrag = document.getElementById("infoDraggable");
+        idrag.style.width = "";
+        idrag.style.height = "";
+    });
+    myPalette = new go.Palette("palete");  // must name or refer to the DIV HTML element
+    myPalette.nodeTemplateMap = myDiagram.nodeTemplateMap;
+    myPalette.model = new go.GraphLinksModel([
+        { text: "Lake", fill: fill1, stroke: brush1, figure: "Rectangle" },
+        { text: "Ocean", fill: fill2, stroke: brush2, figure: "Rectangle" },
+    ]);
+
+
+
+
+</script>
+</html>
