@@ -4,6 +4,8 @@
     <title>LF edior</title>
     <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/gojs/1.6.7/go-debug.js"></script>-->
     <script src="gojs-debug.js"></script>
+    <script src="settings.js"></script>
+    <script src="functions.js"></script>
 </head>
 <style type="text/css">
     #big-sprite{
@@ -55,22 +57,8 @@
     }
 </style>
 <script>
-
-
-
-    function FrameNameColor(FrameName) {
-        var color;
-        console.log(FrameName);
-        switch (FrameName.toString()){
-            case 'standing': color='#DDD'; break;
-            case  'walking': color='#456234'; break;
-            default: color='red';
-        }
-
-        return color;
-    }
-
-
+    var ev;
+    var n;
     var go1;
     var  work1;
     var frameModel;
@@ -81,33 +69,52 @@ window.onload = function () {
       work1 = go1(go.Diagram, "work1",
             {
                 initialContentAlignment: go.Spot.Center, // center Diagram contents
-                "undoManager.isEnabled": true // enable Ctrl-Z to undo and Ctrl-Y to redo
+                "undoManager.isEnabled": true, // enable Ctrl-Z to undo and Ctrl-Y to redo
+                allowDrop: true, // from Palette
+                // what to do when a drag-drop occurs in the Diagram's background
+                mouseDrop: function(e) { finishDrop(e, null); e=ev; },
+                layout:  // Diagram has simple horizontal layout
+                        go1(go.GridLayout,
+                                {  alignment: go.GridLayout.Position, cellSize: new go.Size(1, 1) }),
+                initialContentAlignment: go.Spot.Center,
+                "commandHandler.archetypeGroupData": { isGroup: true, category: "OfNodes" },
             });
-
-     //frameNameBinded = new go.Binding("text", "FrameName");
-/*Function that makes a text binding TextBlockName is name to be binded,
- label, if it require a label default true*/
-    function BindText(TextBlockName,label,color) {
-    if(color===undefined) color='white';
-       return  go1(go.TextBlock, TextBlockName+ ': ' +"value",
-               { margin: 2, stroke: color, font: "bold 12px sans-serif", editable: true },
-               new go.Binding("text", TextBlockName,function(v) { return label!=false? TextBlockName+ ': ' + v : v; }))
-    }
 
 
     work1.nodeTemplate = go1(go.Node, "Horizontal",
             // the entire node will have a light-blue background
-            { background: "#44CCFF", height: 200 , resizable: true},
-            go1(go.Picture, //"https://www.nasa.gov/sites/default/files/styles/image_card_4x3_ratio/public/thumbnails/image/leisa_christmas_false_color.png?itok=Jxf0IlS4",
+            { background: frame.background, height: frame.height , resizable: true,
+                mouseDrop: function(e, nod) { finishDrop(e, nod.containingGroup); ev=e; n=nod; },
+            click: function () {
+                //o.panel.setProperties({'framedata.visible':false});
+            },
+                mouseEnter: function (e,o) {
+                    o.setProperties({'framedata.visible':true})
+                },
+                mouseLeave: function (e,o) {
+                    o.setProperties({'framedata.visible':false})
+                }
+            },
+            go1(go.Picture,
                     // Pictures should normally have an explicit width and height.
                     // This picture has a red background, only visible when there is no source set
                     // or when the image is partially transparent.
-                    { margin: 3, imageStretch: go.GraphObject.None, sourceRect: new go.Rect(160,80,80,80)},
-                    // Picture.source is data bound to the "source" attribute of the model data
-                    new go.Binding("source"), new go.Binding("sourceRect","picPos")
-                     ),
-            go1(go.Panel,'Horizontal',
+                    { name: 'pic', margin: 3, imageStretch: go.GraphObject.None, sourceRect: new go.Rect(160,80,80,80),
+                        click: function (e,o) {
+                            console.log(e);  ev=e; nod=o;         console.log('e');
+                        },
 
+                        doubleClick: function (e,o) {
+                            var g=go1(go.Picture,  'frozen_0.bmp',
+                                    {name: 'pp', background: 'blue', height: 200, width: 200});
+                            console.log('hrt');
+                            console.log(g)
+                        }
+                    },
+                    // Picture.source is data bound to the "source" attribute of the model data
+                    new go.Binding("source").makeTwoWay(), new go.Binding("sourceRect","picPos").makeTwoWay()
+                     ),
+            go1(go.Panel,'Vertical', {visible: false, name: 'framedata'},
                     BindText('FrameID',false),BindText('FrameName',false),BindText('next'),BindText('state'),
                     BindText('wait'),BindText('pic'),BindText('centerx'),BindText('centery'),
                     BindText('hit_Fa'),BindText('hit_Ua'),BindText('hit_Da'),BindText('hit_Fj')
@@ -146,13 +153,13 @@ window.onload = function () {
     work1.groupTemplate =
             go1(go.Group, "Auto",
                     { // define the group's internal layout
-                        layout: go1(go.TreeLayout,
-                                { angle: 90, arrangement: go.TreeLayout.ArrangementHorizontal, isRealtime: true }),
+                        layout: go1(go.GridLayout,
+                                {  isRealtime: true, wrappingWidth: 600 }),
                         // the group begins unexpanded;
                         // upon expansion, a Diagram Listener will generate contents for the group
                         isSubGraphExpanded: true,
                         // when a group is expanded, if it contains no parts, generate a subGraph inside of it
-                        subGraphExpandedChanged: function(group) {if (group.memberParts.count === 0) {}}
+                        subGraphExpandedChanged: function(group) {if (group.memberParts.count === 0) {} nod=group;}
                     },
                     go1(go.Shape, "Rectangle",
                             { fill: null, stroke: "gray", strokeWidth: 2 }),
@@ -190,42 +197,6 @@ window.onload = function () {
     var file;
     var text = "";
     var characters=[];
-
-
-    function fileSupport() {// Check for the various File API support.
-        if (window.File && window.FileReader && window.FileList && window.Blob) {
-            // Great success! All the File APIs are supported.
-            console.log('sucess')
-        } else {
-            alert('The File APIs are not fully supported in this browser.');
-            console.log('The File APIs are not fully supported in this browser')
-        }
-    }
-
-    function openFile() {
-        file = document.getElementById("fileInput").files[0];
-        var fileName = escape(file.name);
-        var fileType = (file.type ? file.type : 'n/a');
-        var fileSize = file.size;
-        var lastModified = file.lastModifiedDate ? file.lastModifiedDate.toLocaleDateString() : 'n/a';
-
-        if(file.name.substring(file.name.lastIndexOf(".")) != ".dat" ) {
-            alert('LF2 data file only.');
-            return false;
-        }
-        else {
-            fileType = "LF2/data";
-        }
-        document.getElementById('details').innerHTML =
-                '<strong>' + fileName + '</strong> (' + fileType + ') - ' +
-                fileSize + ' bytes, last modified: ' + lastModified;
-        return true;
-    }
-
-
-
-
-
 
     function decrypt() {
         var key = "odBearBecauseHeIsVeryGoodSiuHungIsAGo";
@@ -467,6 +438,10 @@ window.onload = function () {
                 }
                 }
 
+                /*Find itr bdy opoint cpoint wpoint*/
+
+
+
                 /*show them in editable divs*/
                 var headerTagsContainer = document.createElement('DIV');
                 headerTagsContainer.className = 'headerTagsContainer';
@@ -484,7 +459,9 @@ window.onload = function () {
                 lfframeDOM.appendChild(para); /*appen paragraph in frame*/
                 CharContainer.appendChild(lfframeDOM);
 
-                frames.push(frame);
+
+
+                frames.push(frame); //add frame in frames
 
                 /*add char name to diagram*/
                 var frameGroupExist = false;
@@ -493,9 +470,14 @@ window.onload = function () {
                         frameGroupExist=true; break;
                     }
                 }
-                if(!frameGroupExist)
-                frameModel.addNodeData({key: frame.Name, isGroup: true});
 
+                if(!frameGroupExist){
+                    work1.model.startTransaction('new group');
+                    frameModel.addNodeData({key: frame.Name, isGroup: true});
+                    work1.model.commitTransaction('new group');
+                }
+
+                work1.model.startTransaction('new node');
 
                 frameNameBinded=ClonePic.style.backgroundImage.slice(5, -2);
                var PosX=parseInt(ClonePic.style.backgroundPositionX.replace('px','')); var PosY= parseInt(ClonePic.style.backgroundPositionY.replace('px',''));
@@ -510,6 +492,7 @@ window.onload = function () {
              frameModel.addLinkData({from: lfframeDOM.id, to: character.name+'-'+frame.next, linkcolor: 'black',text: 'next'})
                 frameModel.addLinkData({from: lfframeDOM.id, to: character.name+'-'+frame.hit_Da, linkcolor: 'red', text: 'hit_Da'})
             }
+            work1.model.commitTransaction('new node');
 
             /*Now after clonning all pics to their postiotions delete the raw form of them*/
             var myNode = document.getElementById("picTemplate");
