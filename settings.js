@@ -16,6 +16,13 @@ var frame={
     centery: {
         color: '#ad0c00'
     },
+    mouse:{
+        click: function (e,o) {
 
+        },
+        doubleClick: function (e,o){
+            o.findObject('framedata').visible=!o.findObject('framedata').visible
+        }
+    }
 
 }

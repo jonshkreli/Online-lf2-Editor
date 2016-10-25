@@ -63,6 +63,7 @@
     var  work1;
     var frameModel;
 
+
     var frameNameBinded;
 window.onload = function () {
      go1 = go.GraphObject.make;
@@ -83,16 +84,28 @@ window.onload = function () {
 
     work1.nodeTemplate = go1(go.Node, "Horizontal",
             // the entire node will have a light-blue background
-            { background: frame.background, height: frame.height , resizable: true,
-                mouseDrop: function(e, nod) { finishDrop(e, nod.containingGroup); ev=e; n=nod; },
-            click: function () {
-                //o.panel.setProperties({'framedata.visible':false});
-            },
+            { background: frame.background/*, height: frame.height */, resizable: true,
+                //mouseDrop: function(e, nod) { finishDrop(e, nod.containingGroup); ev=e; n=nod; },
+                toolTip:  // define a tooltip for each node that displays the color as text
+                        go1(go.Adornment, 'Spot',{name: 'toolTip'},
+                                go1(go.Shape, { fill: "#FFFFCC" }),
+                                go1(go.Panel,'Vertical',{name: 'toolTipData'},
+                                        go1(go.TextBlock, { margin: 2, name: 'FrameNum', font: 'bold 12px sans-serif' },
+                                        new go.Binding("text", "FrameNum")),
+                                        go1(go.TextBlock, { margin: 2, name: 'FrameName' },
+                                                new go.Binding("text", "FrameName")),
+                                        go1(go.TextBlock, { margin: 2, name:'pic'},
+                                                new go.Binding("text", "pic", function (p) {return 'pic: '+p})),
+                                        go1(go.TextBlock, { margin: 2, name: 'next' },
+                                                new go.Binding("text", "next", function (p) {return 'next: '+p}))
+                                )
+                        ),
+            doubleClick: frame.mouse.doubleClick,
                 mouseEnter: function (e,o) {
-                    o.setProperties({'framedata.visible':true})
+                    //o.setProperties({'framedata.visible':true})
                 },
                 mouseLeave: function (e,o) {
-                    o.setProperties({'framedata.visible':false})
+                   // o.setProperties({'framedata.visible':false})
                 }
             },
             go1(go.Picture,
@@ -101,9 +114,17 @@ window.onload = function () {
                     // or when the image is partially transparent.
                     { name: 'pic', margin: 3, imageStretch: go.GraphObject.None, sourceRect: new go.Rect(160,80,80,80),
                         click: function (e,o) {
-                            console.log(e);  ev=e; nod=o;         console.log('e');
+                            console.log(e);  ev=e; nod=o;
                         },
-
+                        mouseHover:  function(e,o){
+                            nod = o;
+                           var text= o.part.findObject('framedata').findObject('pic').text;
+                            console.log(text)
+                            go1(go.Adornment, "Auto",
+                                    go1(go.Shape, { fill: "#FFFFCC" }),
+                                    go1(go.TextBlock,'hfghgf', { margin: 4 })
+                            )
+                        },
                         doubleClick: function (e,o) {
                             var g=go1(go.Picture,  'frozen_0.bmp',
                                     {name: 'pp', background: 'blue', height: 200, width: 200});
@@ -115,7 +136,7 @@ window.onload = function () {
                     new go.Binding("source").makeTwoWay(), new go.Binding("sourceRect","picPos").makeTwoWay()
                      ),
             go1(go.Panel,'Vertical', {visible: false, name: 'framedata'},
-                    BindText('FrameID',false),BindText('FrameName',false),BindText('next'),BindText('state'),
+                    BindText('FrameID',false),BindText('FrameName',false),BindText('FrameNum',false),BindText('next'),BindText('state'),
                     BindText('wait'),BindText('pic'),BindText('centerx'),BindText('centery'),
                     BindText('hit_Fa'),BindText('hit_Ua'),BindText('hit_Da'),BindText('hit_Fj')
             )
@@ -483,7 +504,7 @@ window.onload = function () {
                var PosX=parseInt(ClonePic.style.backgroundPositionX.replace('px','')); var PosY= parseInt(ClonePic.style.backgroundPositionY.replace('px',''));
                var W= ClonePic.offsetWidth; var H=ClonePic.offsetHeight;
              frameModel.addNodeData({ source: ClonePic.style.backgroundImage.slice(5, -2), picPos: new go.Rect(-PosX,-PosY,W,H),
-                 key: lfframeDOM.id,FrameID: lfframeDOM.id, FrameName: frame.Name, pic: frame.pic, next: frame.next,
+                 key: lfframeDOM.id,FrameID: lfframeDOM.id,FrameNum: frame.ID, FrameName: frame.Name, pic: frame.pic, next: frame.next,
                  state: frame.state, wait: frame.wait, centerx: frame.centerx, centery: frame.centery,
                  hit_Fa: frame.hit_Fa, hit_Da: frame.hit_Da, hit_Fj: frame.hit_Fj,
              group: frame.Name

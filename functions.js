@@ -58,9 +58,14 @@ function BindText(TextBlockName,label,color) {
         else color=frame[TextBlockName].color;
     }
     return  go1(go.Panel, "Horizontal",
-        go1(go.TextBlock,label==false? "": TextBlockName+":", { margin: 2, stroke: color, font: "12px sans-serif" }),
+        go1(go.TextBlock,label==false? "": TextBlockName+":", {name: 'label-'+TextBlockName, margin: 2, stroke: color, font: "12px sans-serif" }),
         go1(go.TextBlock,
-            { margin: 2, stroke: "white", font: "bold 12px sans-serif", editable: true },
+            {name: TextBlockName, margin: 2, stroke: "white", font: "bold 12px sans-serif", editable: true,
+            click: function (e,o,u) {
+                ev=e; nod=o; console.log(u);
+            }
+                
+            },
             new go.Binding("text", TextBlockName).makeTwoWay())
     );
 }
